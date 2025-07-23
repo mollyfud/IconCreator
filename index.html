@@ -1,0 +1,1107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>File Icon Generator</title>
+    <!-- Tailwind CSS for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom styles for the canvas for better visual control */
+        canvas {
+            border: 1px solid #e0e0e0;
+            background-color: #f8f8f8; /* Slightly off-white for canvas background */
+            display: block; /* Remove extra space below canvas */
+            margin: 0 auto; /* Center the canvas */
+            border-radius: 0.75rem; /* Rounded corners for the canvas */
+        }
+        body {
+            font-family: 'Inter', sans-serif; /* Use Inter font */
+        }
+        /* Style for color input to make it look consistent */
+        input[type="color"] {
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
+            width: 32px; /* Standard size for color input */
+            height: 32px;
+            border: none;
+            background: none;
+            cursor: pointer;
+            padding: 0;
+            border-radius: 0.5rem; /* Match other rounded elements */
+            overflow: hidden; /* Hide default border/shadow */
+        }
+        input[type="color"]::-webkit-color-swatch-wrapper {
+            padding: 0;
+        }
+        input[type="color"]::-webkit-color-swatch {
+            border: 1px solid #ccc; /* Add a subtle border */
+            border-radius: 0.5rem;
+        }
+        input[type="color"]::-moz-color-swatch-wrapper {
+            padding: 0;
+        }
+        input[type="color"]::-moz-color-swatch {
+            border: 1px solid #ccc;
+            border-radius: 0.5rem;
+        }
+        /* Custom style for the image picker canvas */
+        #imagePickerCanvas {
+            cursor: crosshair; /* Indicate clickable area */
+            border: 1px dashed #ccc;
+            background-color: #f0f0f0;
+            margin-top: 1rem;
+            max-width: 100%; /* Ensure it's responsive */
+            height: auto; /* Maintain aspect ratio */
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen flex items-center justify-center p-4">
+    <div class="bg-white p-8 rounded-xl shadow-lg w-full max_w_md text-center">
+        <h1 class="text-3xl font-bold text-gray-800 mb-6">Generate File Icon</h1>
+
+        <div class="mb-4">
+            <label for="extensionInput" class="block text-gray-700 text-sm font-medium mb-2">
+                Enter File Extension(s) (e.g., DOC, XLS, SVG, or DOC,XLS,SVG):
+            </label>
+            <input
+                type="text"
+                id="extensionInput"
+                class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-800"
+                placeholder="e.g., HTML, CSS, JS"
+            />
+        </div>
+
+        <div class="mb-2 flex flex-col sm:flex-row justify-center space-y-2 sm:space-y-0 sm:space-x-4">
+            <button
+                id="describeExtensionButton"
+                class="bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-2 px-4 rounded-lg shadow-md transition duration-300 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:ring-opacity-75"
+            >
+                ✨ Describe Extension
+            </button>
+            <button
+                id="suggestRelatedButton"
+                class="bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-2 px-4 rounded-lg shadow-md transition duration-300 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-75"
+            >
+                ✨ Suggest Related Extensions
+            </button>
+        </div>
+        <div class="mb-4 flex flex-col sm:flex-row justify-center space-y-2 sm:space-y-0 sm:space-x-4">
+            <button
+                id="categorizeExtensionButton"
+                class="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded-lg shadow-md transition duration-300 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-75"
+            >
+                ✨ Categorize Extension
+            </button>
+            <button
+                id="suggestPaletteButton"
+                class="bg-pink-500 hover:bg-pink-600 text-white font-bold py-2 px-4 rounded-lg shadow-md transition duration-300 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-pink-500 focus:ring-opacity-75"
+            >
+                ✨ Suggest Color Palette
+            </button>
+        </div>
+
+        <!-- New Section for Color Picking from Image -->
+        <div class="bg-gray-50 p-4 rounded-lg mt-6 mb-6 text-left">
+            <h2 class="text-xl font-semibold text-gray-800 mb-4">Color Picking from Image</h2>
+            <div class="mb-4">
+                <label for="imageUpload" class="block text-gray-700 text-sm font-medium mb-2">
+                    Upload Image:
+                </label>
+                <input type="file" id="imageUpload" accept="image/png, image/jpeg, image/gif"
+                    class="w-full text-gray-800 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+            </div>
+            <button
+                id="startColorPickingButton"
+                class="bg-teal-500 hover:bg-teal-600 text-white font-bold py-2 px-4 rounded-lg shadow-md transition duration-300 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-opacity-75 w-full"
+            >
+                Start Picking Colors
+            </button>
+
+            <div id="imagePickerContainer" class="hidden mt-4">
+                <canvas id="imagePickerCanvas"></canvas>
+                <p id="pickingInstruction" class="text-sm text-blue-700 mt-2 font-medium"></p>
+            </div>
+        </div>
+        <!-- End New Section -->
+
+
+        <div class="mb-6">
+            <label for="prefixInput" class="block text-gray-700 text-sm font-medium mb-2">
+                Filename Prefix (Optional):
+            </label>
+            <input
+                type="text"
+                id="prefixInput"
+                class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-800"
+                placeholder="e.g., my_icon_"
+            />
+        </div>
+
+        <div class="mb-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+                <label for="imageWidthInput" class="block text-gray-700 text-sm font-medium mb-2">
+                    Image Width (px):
+                </label>
+                <input type="number" id="imageWidthInput" value="200" min="50" max="500"
+                    class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-800">
+            </div>
+            <div>
+                <label for="imageHeightInput" class="block text-gray-700 text-sm font-medium mb-2">
+                    Image Height (px):
+                </label>
+                <input type="number" id="imageHeightInput" value="250" min="50" max="500"
+                    class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-800">
+            </div>
+        </div>
+
+        <div class="mb-6 grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div>
+                <label for="pageColorPicker" class="block text-gray-700 text-sm font-medium mb-2">
+                    Page Color:
+                </label>
+                <input type="color" id="pageColorPicker" value="#6495ED" class="w-full h-12">
+            </div>
+            <div>
+                <label for="foldColorPicker" class="block text-gray-700 text-sm font-medium mb-2">
+                    Fold Color:
+                </label>
+                <input type="color" id="foldColorPicker" value="#AEC6CF" class="w-full h-12">
+            </div>
+            <div>
+                <label for="textColorPicker" class="block text-gray-700 text-sm font-medium mb-2">
+                    Text Color:
+                </label>
+                <input type="color" id="textColorPicker" value="#1E1E1E" class="w-full h-12">
+            </div>
+        </div>
+
+        <div class="mb-6 flex items-center justify-center space-x-2">
+            <input type="checkbox" id="showCategoryIconCheckbox" class="form-checkbox h-5 w-5 text-blue-600 rounded">
+            <label for="showCategoryIconCheckbox" class="text-gray-700 text-sm font-medium">Show Category Icon</label>
+        </div>
+
+        <div class="mb-6">
+            <label for="imageFormatSelect" class="block text-gray-700 text-sm font-medium mb-2">
+                Export Format:
+            </label>
+            <select id="imageFormatSelect" class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-800">
+                <option value="image/png">PNG</option>
+                <option value="image/jpeg">JPG</option>
+            </select>
+        </div>
+
+        <div class="flex flex-col sm:flex-row justify-center space-y-4 sm:space-y-0 sm:space-x-4 mb-8">
+            <button
+                id="displayButton"
+                class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg shadow-md transition duration-300 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-75"
+            >
+                Display Icon
+            </button>
+            <button
+                id="generateAndDownloadAllButton"
+                class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-6 rounded-lg shadow-md transition duration-300 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-75"
+            >
+                Generate All & Download
+            </button>
+        </div>
+
+        <canvas id="iconCanvas" width="200" height="250" class="mb-4"></canvas>
+
+        <p id="messageBox" class="text-sm text-gray-600 mt-4"></p>
+        <div id="llmResponseBox" class="text-sm text-gray-700 bg-gray-50 p-4 rounded-lg mt-4 hidden text-left">
+            <p class="font-semibold mb-2">Extension Description:</p>
+            <p id="llmResponseContent"></p>
+            <div id="llmLoadingIndicator" class="mt-2 text-blue-500 hidden">Loading...</div>
+        </div>
+        <div id="relatedExtensionsBox" class="text-sm text-gray-700 bg-gray-50 p-4 rounded-lg mt-4 hidden text-left">
+            <p class="font-semibold mb-2">Related Extensions:</p>
+            <p id="relatedExtensionsContent"></p>
+            <div id="relatedLoadingIndicator" class="mt-2 text-blue-500 hidden">Loading...</div>
+        </div>
+        <div id="categoryBox" class="text-sm text-gray-700 bg-gray-50 p-4 rounded-lg mt-4 hidden text-left">
+            <p class="font-semibold mb-2">Extension Category:</p>
+            <p id="categoryContent"></p>
+            <div id="categoryLoadingIndicator" class="mt-2 text-blue-500 hidden">Loading...</div>
+        </div>
+    </div>
+
+    <script>
+        // Get references to HTML elements
+        const extensionInput = document.getElementById('extensionInput');
+        const prefixInput = document.getElementById('prefixInput');
+        const imageWidthInput = document.getElementById('imageWidthInput');
+        const imageHeightInput = document.getElementById('imageHeightInput');
+        const pageColorPicker = document.getElementById('pageColorPicker');
+        const foldColorPicker = document.getElementById('foldColorPicker');
+        const textColorPicker = document.getElementById('textColorPicker');
+        const showCategoryIconCheckbox = document.getElementById('showCategoryIconCheckbox');
+        const imageFormatSelect = document.getElementById('imageFormatSelect');
+        const displayButton = document.getElementById('displayButton');
+        const generateAndDownloadAllButton = document.getElementById('generateAndDownloadAllButton');
+        const describeExtensionButton = document.getElementById('describeExtensionButton');
+        const suggestRelatedButton = document.getElementById('suggestRelatedButton');
+        const categorizeExtensionButton = document.getElementById('categorizeExtensionButton');
+        const suggestPaletteButton = document.getElementById('suggestPaletteButton');
+        const iconCanvas = document.getElementById('iconCanvas');
+        const messageBox = document.getElementById('messageBox');
+        const llmResponseBox = document.getElementById('llmResponseBox');
+        const llmResponseContent = document.getElementById('llmResponseContent');
+        const llmLoadingIndicator = document.getElementById('llmLoadingIndicator');
+        const relatedExtensionsBox = document.getElementById('relatedExtensionsBox');
+        const relatedExtensionsContent = document.getElementById('relatedExtensionsContent');
+        const relatedLoadingIndicator = document.getElementById('relatedLoadingIndicator');
+        const categoryBox = document.getElementById('categoryBox');
+        const categoryContent = document.getElementById('categoryContent');
+        const categoryLoadingIndicator = document.getElementById('categoryLoadingIndicator');
+        let ctx = iconCanvas.getContext('2d'); 
+
+        // New elements for image color picking
+        const imageUpload = document.getElementById('imageUpload');
+        const startColorPickingButton = document.getElementById('startColorPickingButton');
+        const imagePickerContainer = document.getElementById('imagePickerContainer');
+        const imagePickerCanvas = document.getElementById('imagePickerCanvas');
+        const pickingInstruction = document.getElementById('pickingInstruction');
+        const imagePickerCtx = imagePickerCanvas.getContext('2d');
+
+        // State for color picking
+        let currentPickingStep = 0; // 0: idle, 1: page, 2: fold, 3: text
+        let uploadedImage = null; // Stores the loaded image object
+
+        // Cache for pre-rendered category icon data URLs
+        const categoryIconDataURLCache = {};
+        // Cache for loaded Image objects from data URLs
+        const categoryIconImageObjectCache = {};
+
+        // Base dimensions for scaling (original design size)
+        const BASE_WIDTH = 200;
+        const BASE_HEIGHT = 250;
+        const BASE_PAGE_PADDING = 20;
+        const BASE_FOLD_SIZE = 40;
+        const BASE_FONT_SIZE = 24;
+        const BASE_ICON_DRAW_SIZE = 60;
+        const BASE_TEXT_Y_OFFSET = 15; // Offset from bottom of pageRect to align text baseline
+
+        // Function to display general messages to the user
+        function showMessage(message, type = 'info') {
+            messageBox.textContent = message;
+            messageBox.className = `text-sm mt-4 ${type === 'error' ? 'text-red-600' : 'text-gray-600'}`;
+        }
+
+        /**
+         * Converts RGB values to a HEX color string.
+         * @param {number} r Red component (0-255).
+         * @param {number} g Green component (0-255).
+         * @param {number} b Blue component (0-255).
+         * @returns {string} HEX color string (e.g., "#RRGGBB").
+         */
+        function rgbToHex(r, g, b) {
+            return "#" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1).toUpperCase();
+        }
+
+        /**
+         * Determines a simplified category for an extension based on common types.
+         * This is a local, hardcoded mapping for drawing purposes.
+         * @param {string} extension The file extension.
+         * @returns {string} The simplified category (e.g., "document", "image", "code").
+         */
+        function getSimplifiedCategory(extension) {
+            const ext = extension.toLowerCase();
+            if (['doc', 'docx', 'pdf', 'txt', 'rtf', 'odt'].includes(ext)) return 'document';
+            if (['jpg', 'jpeg', 'png', 'gif', 'bmp', 'svg', 'webp'].includes(ext)) return 'image';
+            if (['xls', 'xlsx', 'csv', 'ods'].includes(ext)) return 'spreadsheet';
+            if (['ppt', 'pptx', 'odp'].includes(ext)) return 'presentation';
+            if (['htm', 'html', 'css', 'js', 'json', 'xml', 'py', 'java', 'c', 'cpp', 'cs'].includes(ext)) return 'code';
+            if (['zip', 'rar', '7z', 'tar', 'gz'].includes(ext)) return 'archive';
+            if (['mp3', 'wav', 'ogg', 'flac'].includes(ext)) return 'audio';
+            if (['mp4', 'avi', 'mov', 'mkv'].includes(ext)) return 'video';
+            return 'generic'; // Default category
+        }
+
+        /**
+         * Draws a simple icon based on the category onto a given context.
+         * This function only draws the shapes, it doesn't handle caching.
+         * @param {CanvasRenderingContext2D} context The 2D rendering context.
+         * @param {string} category The simplified category.
+         * @param {number} drawSize The size to draw the icon (e.g., 60px).
+         * @param {string} iconColor Color for the icon.
+         */
+        function drawCategoryIconShapes(context, category, drawSize, iconColor) {
+            const halfDrawSize = drawSize / 2;
+
+            context.fillStyle = iconColor;
+            context.strokeStyle = iconColor;
+            context.lineWidth = 2;
+
+            // Clear the temporary canvas before drawing new shapes
+            context.clearRect(0, 0, context.canvas.width, context.canvas.height);
+
+            // Translate to the center of the temporary canvas for easier drawing
+            context.save();
+            context.translate(context.canvas.width / 2, context.canvas.height / 2);
+
+            switch (category) {
+                case 'document':
+                    // Simple document icon (rectangle with lines)
+                    context.fillRect(-halfDrawSize / 2, -halfDrawSize, halfDrawSize, drawSize);
+                    context.beginPath();
+                    context.moveTo(-halfDrawSize / 2 + 5, -halfDrawSize + 10);
+                    context.lineTo(halfDrawSize / 2 - 5, -halfDrawSize + 10);
+                    context.moveTo(-halfDrawSize / 2 + 5, -halfDrawSize + 20);
+                    context.lineTo(halfDrawSize / 2 - 5, -halfDrawSize + 20);
+                    context.moveTo(-halfDrawSize / 2 + 5, -halfDrawSize + 30);
+                    context.lineTo(halfDrawSize / 2 - 15, -halfDrawSize + 30);
+                    context.stroke();
+                    break;
+                case 'image':
+                    // Simple mountain/sun icon
+                    context.beginPath();
+                    context.arc(0, -halfDrawSize / 2, halfDrawSize / 4, 0, Math.PI * 2); // Sun
+                    context.fill();
+                    context.beginPath();
+                    context.moveTo(-halfDrawSize, halfDrawSize / 2);
+                    context.lineTo(0, -halfDrawSize / 2);
+                    context.lineTo(halfDrawSize, halfDrawSize / 2);
+                    context.closePath();
+                    context.fill();
+                    context.beginPath();
+                    context.moveTo(-halfDrawSize / 2, halfDrawSize / 2);
+                    context.lineTo(halfDrawSize / 2, halfDrawSize / 2);
+                    context.lineTo(0, halfDrawSize);
+                    context.closePath();
+                    context.fill();
+                    break;
+                case 'spreadsheet':
+                    // Simple grid icon
+                    context.strokeRect(-halfDrawSize, -halfDrawSize, drawSize, drawSize);
+                    context.beginPath();
+                    context.moveTo(-halfDrawSize, -halfDrawSize / 2);
+                    context.lineTo(halfDrawSize, -halfDrawSize / 2);
+                    context.moveTo(-halfDrawSize, 0);
+                    context.lineTo(halfDrawSize, 0);
+                    context.moveTo(-halfDrawSize, halfDrawSize / 2);
+                    context.lineTo(halfDrawSize, halfDrawSize / 2);
+
+                    context.moveTo(-halfDrawSize / 2, -halfDrawSize);
+                    context.lineTo(-halfDrawSize / 2, drawSize);
+                    context.moveTo(0, -halfDrawSize);
+                    context.lineTo(0, drawSize);
+                    context.moveTo(halfDrawSize / 2, -halfDrawSize);
+                    context.lineTo(halfDrawSize / 2, drawSize);
+                    context.stroke();
+                    break;
+                case 'presentation':
+                    // Stacked rectangles
+                    context.fillRect(-halfDrawSize, -halfDrawSize, drawSize, drawSize * 0.7);
+                    context.strokeRect(-halfDrawSize, -halfDrawSize, drawSize, drawSize * 0.7);
+                    context.fillRect(-halfDrawSize * 0.8, -halfDrawSize * 0.7, drawSize * 0.8, drawSize * 0.7);
+                    context.strokeRect(-halfDrawSize * 0.8, -halfDrawSize * 0.7, drawSize * 0.8, drawSize * 0.7);
+                    break;
+                case 'code':
+                    // Angle brackets
+                    context.font = `${drawSize * 0.8}px monospace`;
+                    context.textAlign = 'center';
+                    context.textBaseline = 'middle';
+                    context.fillText('< >', 0, 0);
+                    break;
+                case 'archive':
+                    // Simple zipper
+                    context.strokeRect(-halfDrawSize, -halfDrawSize, drawSize, drawSize);
+                    context.beginPath();
+                    context.moveTo(0, -halfDrawSize);
+                    context.lineTo(0, drawSize);
+                    context.stroke();
+                    context.beginPath();
+                    context.arc(0, -halfDrawSize + 10, 5, 0, Math.PI * 2);
+                    context.fill();
+                    break;
+                case 'audio':
+                    // Music note
+                    context.beginPath();
+                    context.arc(-halfDrawSize / 2, halfDrawSize / 2, halfDrawSize / 4, 0, Math.PI * 2);
+                    context.fill();
+                    context.fillRect(-halfDrawSize / 2, -halfDrawSize / 2, 5, halfDrawSize);
+                    context.beginPath();
+                    context.moveTo(-halfDrawSize / 2, -halfDrawSize / 2);
+                    context.lineTo(halfDrawSize / 2, -halfDrawSize / 2);
+                    context.stroke();
+                    break;
+                case 'video':
+                    // Play button triangle
+                    context.beginPath();
+                    context.moveTo(-halfDrawSize, -halfDrawSize);
+                    context.lineTo(drawSize, 0);
+                    context.lineTo(-halfDrawSize, drawSize);
+                    context.closePath();
+                    context.fill();
+                    break;
+                default:
+                    // Generic file icon (simple rectangle)
+                    context.strokeRect(-halfDrawSize / 2, -halfDrawSize, halfDrawSize, drawSize);
+                    break;
+            }
+
+            context.restore(); // Restore canvas state
+        }
+
+        /**
+         * Gets or generates a category icon image (Image object) from cache.
+         * If not in cache, it draws it on a temporary canvas, caches its data URL,
+         * loads it into an Image object, caches the Image object, and returns it.
+         * @param {string} extension The file extension to determine category.
+         * @param {string} iconColor Color for the icon.
+         * @returns {Promise<HTMLImageElement>} A promise that resolves with the loaded Image element.
+         */
+        async function getOrGenerateCategoryIconImage(extension, iconColor) {
+            const simplifiedCategory = getSimplifiedCategory(extension);
+            const cacheKey = simplifiedCategory + '_' + iconColor;
+            const iconRenderSize = 100; // Consistent size for rendering category icon to data URL
+
+            // 1. Check if the Image object is already loaded and cached
+            if (categoryIconImageObjectCache[cacheKey] && categoryIconImageObjectCache[cacheKey].complete) {
+                return categoryIconImageObjectCache[cacheKey];
+            }
+
+            // 2. Check if data URL is cached, but Image object isn't loaded yet
+            if (categoryIconDataURLCache[cacheKey]) {
+                const img = new Image();
+                img.src = categoryIconDataURLCache[cacheKey];
+                // Store in object cache, but it might not be complete yet
+                categoryIconImageObjectCache[cacheKey] = img;
+                if (!img.complete) {
+                    await new Promise(resolve => {
+                        img.onload = resolve;
+                        img.onerror = () => {
+                            console.error('Failed to load category icon image from data URL (cache hit)');
+                            resolve(); // Resolve anyway to not block
+                        };
+                    });
+                }
+                return img;
+            }
+
+            // 3. Neither data URL nor Image object is cached, so generate it
+            const tempCategoryCanvas = document.createElement('canvas');
+            tempCategoryCanvas.width = iconRenderSize;
+            tempCategoryCanvas.height = iconRenderSize;
+            const tempCategoryCtx = tempCategoryCanvas.getContext('2d');
+
+            drawCategoryIconShapes(tempCategoryCtx, simplifiedCategory, iconRenderSize, iconColor);
+            const dataURL = tempCategoryCanvas.toDataURL('image/png');
+            categoryIconDataURLCache[cacheKey] = dataURL; // Cache the data URL
+
+            const img = new Image();
+            img.src = dataURL;
+            categoryIconImageObjectCache[cacheKey] = img; // Store in object cache
+
+            if (!img.complete) {
+                await new Promise(resolve => {
+                    img.onload = resolve;
+                    img.onerror = () => {
+                        console.error('Failed to load category icon image from data URL (new generation)');
+                        resolve(); // Resolve anyway to not block
+                    };
+                });
+            }
+            return img;
+        }
+
+
+        /**
+         * Draws the file icon onto a given canvas context.
+         * @param {CanvasRenderingContext2D} context The 2D rendering context to draw on.
+         * @param {HTMLCanvasElement} canvasElement The canvas element associated with the context.
+         * @param {string} extension The file extension to display.
+         * @param {string} mainPageColor The color for the main page.
+         * @param {string} foldColor The color for the folded part.
+         * @param {string} textColor The color for the extension text.
+         * @param {boolean} showCategoryIcon Whether to draw the category icon.
+         */
+        async function drawFileIcon(context, canvasElement, extension, mainPageColor, foldColor, textColor, showCategoryIcon) {
+            const width = canvasElement.width;
+            const height = canvasElement.height;
+
+            // Calculate scaled drawing parameters
+            const scaleFactorX = width / BASE_WIDTH;
+            const scaleFactorY = height / BASE_HEIGHT;
+            const scaleFactor = Math.min(scaleFactorX, scaleFactorY); // Use minimum to ensure elements fit
+
+            const pagePadding = BASE_PAGE_PADDING * scaleFactor;
+            const foldSize = BASE_FOLD_SIZE * scaleFactor;
+            const fontSize = BASE_FONT_SIZE * scaleFactor;
+            const iconDrawSize = BASE_ICON_DRAW_SIZE * scaleFactor;
+            const textYOffset = BASE_TEXT_Y_OFFSET * scaleFactor;
+
+
+            const whiteBackground = '#FFFFFF';
+            const foldShadowColor = 'rgba(0, 0, 0, 0.2)';
+
+            context.clearRect(0, 0, width, height);
+            context.imageSmoothingEnabled = true;
+
+            // 1. Draw the white background
+            context.fillStyle = whiteBackground;
+            context.fillRect(0, 0, width, height);
+
+            // 2. Define and draw the main page
+            const pageRectX = pagePadding;
+            const pageRectY = pagePadding;
+            const pageRectWidth = width - (2 * pagePadding);
+            const pageRectHeight = height - (2 * pagePadding);
+
+            context.fillStyle = mainPageColor;
+            context.fillRect(pageRectX, pageRectY, pageRectWidth, pageRectHeight);
+
+            // 3. Draw the folded top-right corner
+
+            // Points for the "cut-out" area (filled with white background)
+            const cutoutPoint1 = { x: pageRectX + pageRectWidth, y: pageRectY };
+            const cutoutPoint2 = { x: pageRectX + pageRectWidth - foldSize, y: pageRectY };
+            const cutoutPoint3 = { x: pageRectX + pageRectWidth, y: pageRectY + foldSize };
+
+            context.fillStyle = whiteBackground;
+            context.beginPath();
+            context.moveTo(cutoutPoint1.x, cutoutPoint1.y);
+            context.lineTo(cutoutPoint2.x, cutoutPoint2.y);
+            context.lineTo(cutoutPoint3.x, cutoutPoint3.y);
+            context.closePath();
+            context.fill();
+
+            // Points for the actual folded piece (lighter blue, on top)
+            const foldPiecePoint1 = { x: pageRectX + pageRectWidth - foldSize, y: pageRectY };
+            const foldPiecePoint2 = { x: pageRectX + pageRectWidth, y: pageRectY + foldSize };
+            const foldPiecePoint3 = { x: pageRectX + pageRectWidth - foldSize, y: pageRectY + foldSize };
+
+            // Draw the shadow cast by the folded piece
+            context.save();
+            context.beginPath();
+            context.moveTo(foldPiecePoint1.x + 2 * scaleFactor, foldPiecePoint1.y + 2 * scaleFactor);
+            context.lineTo(foldPiecePoint2.x + 2 * scaleFactor, foldPiecePoint2.y + 2 * scaleFactor);
+            context.lineTo(foldPiecePoint3.x + 2 * scaleFactor, foldPiecePoint3.y + 2 * scaleFactor);
+            context.closePath();
+            context.fillStyle = foldShadowColor;
+            context.fill();
+            context.restore();
+
+            // Draw the folded piece (using foldColor)
+            context.fillStyle = foldColor;
+            context.beginPath();
+            context.moveTo(foldPiecePoint1.x, foldPiecePoint1.y);
+            context.lineTo(foldPiecePoint2.x, foldPiecePoint2.y);
+            context.lineTo(foldPiecePoint3.x, foldPiecePoint3.y);
+            context.closePath();
+            context.fill();
+
+            // Draw the fold line
+            context.strokeStyle = '#808080';
+            context.lineWidth = 2 * scaleFactor; // Scale line width
+            context.beginPath();
+            context.moveTo(foldPiecePoint1.x, foldPiecePoint1.y);
+            context.lineTo(foldPiecePoint2.x, foldPiecePoint2.y);
+            context.stroke();
+
+            // --- Draw Category Icon (if enabled) ---
+            if (showCategoryIcon) {
+                const categoryImage = await getOrGenerateCategoryIconImage(extension, textColor);
+                // Center of the page for the icon, adjusted to be above the text
+                const iconCenterX = pageRectX + pageRectWidth / 2;
+                const iconCenterY = pageRectY + pageRectHeight / 2 - (20 * scaleFactor); // Slightly above text
+                
+                if (categoryImage.complete) {
+                    context.drawImage(categoryImage, iconCenterX - iconDrawSize / 2, iconCenterY - iconDrawSize / 2, iconDrawSize, iconDrawSize);
+                } else {
+                    console.warn('Category icon image not complete, skipping draw for this frame.');
+                }
+            }
+
+
+            // 4. Draw the extension text
+            context.fillStyle = textColor;
+            context.font = `bold ${fontSize}px Arial`; // Use scaled font size
+            context.textAlign = 'center';
+            context.textBaseline = 'alphabetic';
+
+            const textX = pageRectX + pageRectWidth / 2;
+            const textY = pageRectY + pageRectHeight - textYOffset; // Use scaled text offset
+
+            context.fillText(extension.toUpperCase(), textX, textY);
+        }
+
+        // --- Event Listeners ---
+
+        // Helper function to get current color values from pickers
+        function getCurrentColors() {
+            return {
+                mainPageColor: pageColorPicker.value,
+                foldColor: foldColorPicker.value,
+                textColor: textColorPicker.value
+            };
+        }
+
+        // Function to update canvas dimensions and redraw
+        async function updateCanvasDimensionsAndRedraw() {
+            const newWidth = parseInt(imageWidthInput.value);
+            const newHeight = parseInt(imageHeightInput.value);
+
+            if (!isNaN(newWidth) && newWidth >= 50 && !isNaN(newHeight) && newHeight >= 50) {
+                iconCanvas.width = newWidth;
+                iconCanvas.height = newHeight;
+                ctx = iconCanvas.getContext('2d'); // Re-get context after dimension change
+
+                // Redraw with the current extension and colors
+                const currentExtension = extensionInput.value.trim().split(',')[0];
+                const { mainPageColor, foldColor, textColor } = getCurrentColors();
+                const showCategoryIcon = showCategoryIconCheckbox.checked;
+                
+                // Ensure icon is drawn if an extension is present, otherwise draw a default "FILE"
+                await drawFileIcon(ctx, iconCanvas, currentExtension || "FILE", mainPageColor, foldColor, textColor, showCategoryIcon);
+            } else {
+                showMessage('Please enter valid positive numbers for width and height (min 50px).', 'error');
+            }
+        }
+
+        // Listen for changes in width and height inputs
+        imageWidthInput.addEventListener('change', updateCanvasDimensionsAndRedraw);
+        imageHeightInput.addEventListener('change', updateCanvasDimensionsAndRedraw);
+
+
+        // Display Button click handler
+        displayButton.addEventListener('click', async () => {
+            const inputExtensions = extensionInput.value.trim();
+            const { mainPageColor, foldColor, textColor } = getCurrentColors();
+            const showCategoryIcon = showCategoryIconCheckbox.checked;
+
+            await updateCanvasDimensionsAndRedraw(); // Ensure canvas dimensions are updated and redrawn
+
+            if (inputExtensions) {
+                const extensions = inputExtensions.split(',').map(ext => ext.trim()).filter(ext => ext !== '');
+                if (extensions.length > 0) {
+                    await drawFileIcon(ctx, iconCanvas, extensions[0], mainPageColor, foldColor, textColor, showCategoryIcon);
+                    showMessage(`Icon for '.${extensions[0].toUpperCase()}' displayed.`);
+                } else {
+                    showMessage('No valid extensions found in your input.', 'error');
+                }
+            } else {
+                showMessage('Please enter one or more file extensions.', 'error');
+            }
+        });
+
+        // Generate All & Download Button click handler
+        generateAndDownloadAllButton.addEventListener('click', async () => {
+            const inputExtensions = extensionInput.value.trim();
+            const prefix = prefixInput.value.trim();
+            const selectedFormat = imageFormatSelect.value;
+            const formatExtension = selectedFormat.split('/')[1];
+            const showCategoryIcon = showCategoryIconCheckbox.checked;
+
+            const { mainPageColor, foldColor, textColor } = getCurrentColors();
+            const imageWidth = parseInt(imageWidthInput.value);
+            const imageHeight = parseInt(imageHeightInput.value);
+
+            if (isNaN(imageWidth) || imageWidth < 50 || isNaN(imageHeight) || imageHeight < 50) {
+                showMessage('Please set valid image width and height (min 50px) before downloading.', 'error');
+                return;
+            }
+
+            if (!inputExtensions) {
+                showMessage('Please enter one or more file extensions to generate.', 'error');
+                return;
+            }
+
+            const extensions = inputExtensions.split(',').map(ext => ext.trim()).filter(ext => ext !== '');
+
+            if (extensions.length === 0) {
+                showMessage('No valid extensions found in your input.', 'error');
+                return;
+            }
+
+            showMessage(`Generating and downloading ${extensions.length} icons as .${formatExtension.toUpperCase()}...`);
+
+            for (let i = 0; i < extensions.length; i++) {
+                const ext = extensions[i];
+                const tempCanvas = document.createElement('canvas');
+                tempCanvas.width = imageWidth; // Use user-defined width
+                tempCanvas.height = imageHeight; // Use user-defined height
+                const tempCtx = tempCanvas.getContext('2d');
+
+                await drawFileIcon(tempCtx, tempCanvas, ext, mainPageColor, foldColor, textColor, showCategoryIcon);
+
+                const link = document.createElement('a');
+                link.download = `${prefix}${ext.toUpperCase()}_icon.${formatExtension}`;
+                link.href = tempCanvas.toDataURL(selectedFormat);
+
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+
+                await new Promise(resolve => setTimeout(resolve, 200));
+            }
+            showMessage(`Successfully generated and downloaded ${extensions.length} icons!`);
+        });
+
+        // ✨ Gemini API Integration: Describe Extension Feature
+        describeExtensionButton.addEventListener('click', async () => {
+            const inputExtension = extensionInput.value.trim().split(',')[0]; // Take the first extension if a list is provided
+            if (!inputExtension) {
+                showMessage('Please enter an extension to describe.', 'error');
+                return;
+            }
+
+            llmResponseBox.classList.remove('hidden'); // Show the response box
+            llmResponseContent.textContent = ''; // Clear previous content
+            llmLoadingIndicator.classList.remove('hidden'); // Show loading indicator
+            llmResponseContent.classList.add('text-gray-500'); // Dim text while loading
+            showMessage(`Fetching description for '.${inputExtension.toUpperCase()}'...`);
+
+            try {
+                let chatHistory = [];
+                const prompt = `Provide a very brief, concise description of what the file extension ".${inputExtension}" typically represents. Focus on its primary use or associated software. Limit the response to 1-2 sentences.`;
+                chatHistory.push({ role: "user", parts: [{ text: prompt }] });
+                const payload = { contents: chatHistory };
+                const apiKey = ""; // Canvas will automatically provide this in runtime
+
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!response.ok) { // Check for HTTP errors
+                    const errorText = await response.text();
+                    throw new Error(`HTTP error! status: ${response.status}, body: ${errorText}`);
+                }
+
+                const result = await response.json(); // Attempt to parse JSON
+
+                if (result.candidates && result.candidates.length > 0 &&
+                    result.candidates[0].content && result.candidates[0].content.parts &&
+                    result.candidates[0].content.parts.length > 0) {
+                    const text = result.candidates[0].content.parts[0].text;
+                    llmResponseContent.textContent = text;
+                    llmResponseContent.classList.remove('text-gray-500'); // Restore text color
+                    showMessage(`Description fetched for '.${inputExtension.toUpperCase()}'.`);
+                } else {
+                    llmResponseContent.textContent = 'Could not fetch a description for this extension.';
+                    llmResponseContent.classList.remove('text-gray-500'); // Restore text color
+                    showMessage('Failed to fetch description.', 'error');
+                }
+            } catch (error) {
+                console.error('Error calling Gemini API:', error);
+                llmResponseContent.textContent = `An error occurred while fetching the description: ${error.message}`;
+                llmResponseContent.classList.remove('text-gray-500'); // Restore text color
+                showMessage('Error fetching description.', 'error');
+            } finally {
+                llmLoadingIndicator.classList.add('hidden'); // Hide loading indicator
+            }
+        });
+
+        // ✨ Gemini API Integration: Suggest Related Extensions Feature
+        suggestRelatedButton.addEventListener('click', async () => {
+            const inputExtension = extensionInput.value.trim().split(',')[0]; // Take the first extension
+            if (!inputExtension) {
+                showMessage('Please enter an extension to find related ones.', 'error');
+                return;
+            }
+
+            relatedExtensionsBox.classList.remove('hidden'); // Show the related extensions box
+            relatedExtensionsContent.textContent = ''; // Clear previous content
+            relatedLoadingIndicator.classList.remove('hidden'); // Show loading indicator
+            relatedExtensionsContent.classList.add('text-gray-500'); // Dim text while loading
+            showMessage(`Suggesting related extensions for '.${inputExtension.toUpperCase()}'...`);
+
+            try {
+                let chatHistory = [];
+                const prompt = `Given the file extension ".${inputExtension}", suggest 3-5 other commonly related or similar file extensions. Provide them as a comma-separated list (e.g., DOCX, PDF, RTF).`;
+                chatHistory.push({ role: "user", parts: [{ text: prompt }] });
+                const payload = { contents: chatHistory };
+                const apiKey = ""; // Canvas will automatically provide this in runtime
+
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!response.ok) { // Check for HTTP errors
+                    const errorText = await response.text();
+                    throw new Error(`HTTP error! status: ${response.status}, body: ${errorText}`);
+                }
+
+                const result = await response.json();
+
+                if (result.candidates && result.candidates.length > 0 &&
+                    result.candidates[0].content && result.candidates[0].content.parts &&
+                    result.candidates[0].content.parts.length > 0) {
+                    const text = result.candidates[0].content.parts[0].text;
+                    relatedExtensionsContent.textContent = text;
+                    relatedExtensionsContent.classList.remove('text-gray-500'); // Restore text color
+                    showMessage(`Related extensions suggested for '.${inputExtension.toUpperCase()}'.`);
+                } else {
+                    relatedExtensionsContent.textContent = 'Could not suggest related extensions.';
+                    relatedExtensionsContent.classList.remove('text-gray-500'); // Restore text color
+                    showMessage('Failed to suggest related extensions.', 'error');
+                }
+            } catch (error) {
+                console.error('Error calling Gemini API:', error);
+                relatedExtensionsContent.textContent = `An error occurred while suggesting extensions: ${error.message}`;
+                relatedExtensionsContent.classList.remove('text-gray-500'); // Restore text color
+                showMessage('Error suggesting extensions.', 'error');
+            } finally {
+                relatedLoadingIndicator.classList.add('hidden'); // Hide loading indicator
+            }
+        });
+
+        // ✨ Gemini API Integration: Categorize Extension Feature
+        categorizeExtensionButton.addEventListener('click', async () => {
+            const inputExtension = extensionInput.value.trim().split(',')[0];
+            if (!inputExtension) {
+                showMessage('Please enter an extension to categorize.', 'error');
+                return;
+            }
+
+            categoryBox.classList.remove('hidden');
+            categoryContent.textContent = '';
+            categoryLoadingIndicator.classList.remove('hidden');
+            categoryContent.classList.add('text-gray-500');
+            showMessage(`Categorizing '.${inputExtension.toUpperCase()}'...`);
+
+            try {
+                let chatHistory = [];
+                const prompt = `What is the primary category of the file extension ".${inputExtension}"? Examples: Document File, Image File, Audio File, Video File, Executable File, Archive File, Web File, Spreadsheet File, Presentation File. Provide only the category name.`;
+                chatHistory.push({ role: "user", parts: [{ text: prompt }] });
+                const payload = { contents: chatHistory };
+                const apiKey = "";
+
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!response.ok) { // Check for HTTP errors
+                    const errorText = await response.text();
+                    throw new Error(`HTTP error! status: ${response.status}, body: ${errorText}`);
+                }
+
+                const result = await response.json();
+
+                if (result.candidates && result.candidates.length > 0 &&
+                    result.candidates[0].content && result.candidates[0].content.parts &&
+                    result.candidates[0].content.parts.length > 0) {
+                    const text = result.candidates[0].content.parts[0].text;
+                    categoryContent.textContent = text;
+                    categoryContent.classList.remove('text-gray-500');
+                    showMessage(`Category fetched for '.${inputExtension.toUpperCase()}'.`);
+                } else {
+                    categoryContent.textContent = 'Could not categorize this extension.';
+                    categoryContent.classList.remove('text-gray-500');
+                    showMessage('Failed to categorize extension.', 'error');
+                }
+            } catch (error) {
+                console.error('Error calling Gemini API:', error);
+                categoryContent.textContent = `An error occurred while categorizing: ${error.message}`;
+                categoryContent.classList.remove('text-gray-500');
+                showMessage('Error categorizing extension.', 'error');
+            } finally {
+                categoryLoadingIndicator.classList.add('hidden');
+            }
+        });
+
+        // ✨ Gemini API Integration: Suggest Color Palette Feature
+        suggestPaletteButton.addEventListener('click', async () => {
+            const inputExtension = extensionInput.value.trim().split(',')[0];
+            if (!inputExtension) {
+                showMessage('Please enter an extension to suggest a palette for.', 'error');
+                return;
+            }
+
+            showMessage(`Suggesting color palette for '.${inputExtension.toUpperCase()}'...`);
+            // Temporarily dim color pickers to indicate loading
+            pageColorPicker.style.opacity = foldColorPicker.style.opacity = textColorPicker.style.opacity = 0.5;
+
+            try {
+                let chatHistory = [];
+                const prompt = `Suggest a color palette (main page color, fold color, text color) suitable for a file icon representing the extension ".${inputExtension}". Provide the colors as HEX codes. The fold color should be a lighter shade of the main page color, and the text color should be dark and contrasting. Output in JSON format with keys: "mainPageColor", "foldColor", "textColor". Example: {"mainPageColor": "#RRGGBB", "foldColor": "#RRGGBB", "textColor": "#RRGGBB"}`;
+                chatHistory.push({ role: "user", parts: [{ text: prompt }] });
+                const payload = {
+                    contents: chatHistory,
+                    generationConfig: {
+                        responseMimeType: "application/json",
+                        responseSchema: {
+                            type: "OBJECT",
+                            properties: {
+                                "mainPageColor": { "type": "STRING" },
+                                "foldColor": { "type": "STRING" },
+                                "textColor": { "type": "STRING" }
+                            },
+                            "propertyOrdering": ["mainPageColor", "foldColor", "textColor"]
+                        }
+                    }
+                };
+                const apiKey = "";
+
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!response.ok) { // Check for HTTP errors
+                    const errorText = await response.text();
+                    throw new Error(`HTTP error! status: ${response.status}, body: ${errorText}`);
+                }
+
+                const result = await response.json();
+
+                if (result.candidates && result.candidates.length > 0 &&
+                    result.candidates[0].content && result.candidates[0].content.parts &&
+                    result.candidates[0].content.parts.length > 0) {
+                    const jsonText = result.candidates[0].content.parts[0].text;
+                    const palette = JSON.parse(jsonText); // Parse the JSON string
+
+                    if (palette.mainPageColor && palette.foldColor && palette.textColor) {
+                        pageColorPicker.value = palette.mainPageColor;
+                        foldColorPicker.value = palette.foldColor;
+                        textColorPicker.value = palette.textColor;
+
+                        // Redraw the icon with the new colors immediately
+                        await drawFileIcon(ctx, iconCanvas, inputExtension, palette.mainPageColor, palette.foldColor, palette.textColor, showCategoryIconCheckbox.checked);
+                        showMessage(`Color palette suggested and applied for '.${inputExtension.toUpperCase()}'.`);
+                    } else {
+                        showMessage('Suggested palette was incomplete. Please try again.', 'error');
+                    }
+                } else {
+                    showMessage('Could not suggest a color palette.', 'error');
+                }
+            } catch (error) {
+                console.error('Error calling Gemini API for palette:', error);
+                // Check if the error is a SyntaxError (JSON parsing issue)
+                if (error instanceof SyntaxError) {
+                    showMessage(`An error occurred while parsing the palette suggestion (invalid JSON): ${error.message}`, 'error');
+                } else {
+                    showMessage(`An error occurred while suggesting the palette: ${error.message}`, 'error');
+                }
+            } finally {
+                // Restore opacity of color pickers
+                pageColorPicker.style.opacity = foldColorPicker.style.opacity = textColorPicker.style.opacity = 1;
+            }
+        });
+
+        // --- Image Color Picking Logic ---
+
+        // Handle image file selection
+        imageUpload.addEventListener('change', (event) => {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const img = new Image();
+                    img.onload = () => {
+                        uploadedImage = img; // Store the loaded image
+                        // Resize imagePickerCanvas to fit the image while maintaining aspect ratio
+                        const maxWidth = 300; // Max width for display
+                        const maxHeight = 300; // Max height for display
+                        let newWidth = img.width;
+                        let newHeight = img.height;
+
+                        if (newWidth > maxWidth) {
+                            newHeight = (newHeight / newWidth) * maxWidth;
+                            newWidth = maxWidth;
+                        }
+                        if (newHeight > maxHeight) {
+                            newWidth = (newWidth / newHeight) * maxHeight;
+                            newHeight = maxHeight;
+                        }
+
+                        imagePickerCanvas.width = newWidth;
+                        imagePickerCanvas.height = newHeight;
+                        imagePickerCtx.drawImage(img, 0, 0, newWidth, newHeight);
+                        showMessage('Image loaded. Click "Start Picking Colors" to begin.', 'info');
+                    };
+                    img.onerror = () => {
+                        showMessage('Could not load image. Please try a different file.', 'error');
+                        uploadedImage = null;
+                    };
+                    img.src = e.target.result;
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // Start Color Picking button handler
+        startColorPickingButton.addEventListener('click', () => {
+            if (!uploadedImage) {
+                showMessage('Please upload an image first.', 'error');
+                return;
+            }
+            currentPickingStep = 1; // Start with page color
+            imagePickerContainer.classList.remove('hidden'); // Show the image picker canvas
+            pickingInstruction.textContent = 'Click on the image to pick the MAIN PAGE COLOR.';
+            imagePickerCanvas.addEventListener('click', handleImagePickerClick); // Add click listener
+            showMessage('Picking colors from image. Follow instructions.', 'info');
+        });
+
+        // Handle clicks on the image picker canvas
+        function handleImagePickerClick(event) {
+            if (!uploadedImage || currentPickingStep === 0) return;
+
+            const rect = imagePickerCanvas.getBoundingClientRect();
+            const x = event.clientX - rect.left;
+            const y = event.clientY - rect.top;
+
+            // Get pixel data
+            const pixel = imagePickerCtx.getImageData(x, y, 1, 1).data;
+            const hexColor = rgbToHex(pixel[0], pixel[1], pixel[2]);
+
+            switch (currentPickingStep) {
+                case 1:
+                    pageColorPicker.value = hexColor;
+                    pickingInstruction.textContent = 'Click on the image to pick the FOLD COLOR.';
+                    currentPickingStep = 2;
+                    break;
+                case 2:
+                    foldColorPicker.value = hexColor;
+                    pickingInstruction.textContent = 'Click on the image to pick the TEXT COLOR.';
+                    currentPickingStep = 3;
+                    break;
+                case 3:
+                    textColorPicker.value = hexColor;
+                    pickingInstruction.textContent = ''; // Clear instruction
+                    imagePickerContainer.classList.add('hidden'); // Hide picker
+                    imagePickerCanvas.removeEventListener('click', handleImagePickerClick); // Remove listener
+                    currentPickingStep = 0; // Reset state
+
+                    // Redraw the main icon with the newly picked colors
+                    const currentExtension = extensionInput.value.trim().split(',')[0];
+                    const { mainPageColor, foldColor, textColor } = getCurrentColors();
+                    const showCategoryIcon = showCategoryIconCheckbox.checked;
+                    drawFileIcon(ctx, iconCanvas, currentExtension || "FILE", mainPageColor, foldColor, textColor, showCategoryIcon);
+                    showMessage('Colors picked successfully! Icon updated.', 'success');
+                    break;
+            }
+        }
+
+
+        // Initial draw when the page loads
+        window.onload = async () => {
+            // Set initial canvas dimensions
+            iconCanvas.width = parseInt(imageWidthInput.value);
+            iconCanvas.height = parseInt(imageHeightInput.value);
+            ctx = iconCanvas.getContext('2d'); // Re-get context after initial dimension set
+
+            const { mainPageColor, foldColor, textColor } = getCurrentColors();
+            await drawFileIcon(ctx, iconCanvas, "FILE", mainPageColor, foldColor, textColor, showCategoryIconCheckbox.checked);
+            showMessage('Enter extension(s) and click "Display Icon" or "Generate All & Download"!');
+        };
+    </script>
+</body>
+</html>
